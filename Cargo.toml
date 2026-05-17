@@ -1,0 +1,31 @@
+[package]
+name = "article-reader"
+version = "0.1.0"
+edition = "2024"
+description = "CLI tool to convert articles to speech using Edge TTS (Rust rewrite of article-reader)"
+
+[lib]
+name = "article_reader"
+path = "src/lib.rs"
+
+[[bin]]
+name = "article-reader"
+path = "src/main.rs"
+
+[dependencies]
+msedge-tts = "0.3"
+scraper = "0.27"
+pulldown-cmark = { version = "0.13", default-features = false }
+indicatif = "0.18"
+comfy-table = "7"
+owo-colors = "4"
+chardetng = "0.1"
+encoding_rs = "0.8"
+clap = { version = "4", features = ["derive"] }
+regex = "1"
+anyhow = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
