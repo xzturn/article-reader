@@ -7,6 +7,7 @@ use msedge_tts::voice::{Voice, get_voices_list};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 use std::time::Duration;
 
@@ -45,10 +46,10 @@ pub fn text_to_speech_chunked<F>(
     voice: &str,
     speed_pct: i32,
     concurrency: usize,
-    mut on_progress: F,
+    on_progress: F,
 ) -> Result<()>
 where
-    F: FnMut(usize, usize),
+    F: Fn(usize, usize) + Send + Sync,
 {
     let text = text.trim();
     if text.is_empty() {
@@ -80,12 +81,12 @@ where
 
         if concurrency <= 1 {
             for (i, chunk) in chunks.iter().enumerate() {
-                on_progress(i, total);
                 let bytes = synthesize_with_retry(chunk, &config, 3)?;
                 fs::write(&tmp_files[i], bytes)?;
+                on_progress(i + 1, total);
             }
         } else {
-            run_parallel(&chunks, &tmp_files, &config, concurrency, &mut on_progress)?;
+            run_parallel(&chunks, &tmp_files, &config, concurrency, &on_progress)?;
         }
 
         on_progress(total, total);
@@ -102,14 +103,14 @@ fn run_parallel<F>(
     tmp_files: &[PathBuf],
     config: &SpeechConfig,
     concurrency: usize,
-    on_progress: &mut F,
+    on_progress: &F,
 ) -> Result<()>
 where
-    F: FnMut(usize, usize),
+    F: Fn(usize, usize) + Send + Sync,
 {
     let total = chunks.len();
     let next_idx = Mutex::new(0usize);
-    let done_count = Mutex::new(0usize);
+    let done = AtomicUsize::new(0);
     let error = Mutex::new(None::<anyhow::Error>);
 
     thread::scope(|scope| {
@@ -132,8 +133,8 @@ where
                                 *error.lock().unwrap() = Some(e.into());
                                 return;
                             }
-                            let mut g = done_count.lock().unwrap();
-                            *g += 1;
+                            let cnt = done.fetch_add(1, Ordering::Relaxed) + 1;
+                            on_progress(cnt, total);
                         }
                         Err(e) => {
                             *error.lock().unwrap() = Some(e);
@@ -151,7 +152,6 @@ where
     if let Some(e) = error.lock().unwrap().take() {
         return Err(e);
     }
-    on_progress(*done_count.lock().unwrap(), total);
     Ok(())
 }
 

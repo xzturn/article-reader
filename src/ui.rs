@@ -3,6 +3,7 @@ use comfy_table::{Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
 use indicatif::{ProgressBar, ProgressStyle};
 use msedge_tts::voice::Voice;
 use owo_colors::OwoColorize;
+use std::time::Duration;
 
 pub fn progress_percent(total: u64) -> ProgressBar {
     let pb = ProgressBar::new(total);
@@ -14,6 +15,7 @@ pub fn progress_percent(total: u64) -> ProgressBar {
         .progress_chars("##-"),
     );
     pb.set_message("转换中...");
+    pb.enable_steady_tick(Duration::from_millis(120));
     pb
 }
 
@@ -27,6 +29,7 @@ pub fn progress_count(total: u64, unit: &str) -> ProgressBar {
         .progress_chars("##-"),
     );
     pb.set_message("转换中...");
+    pb.enable_steady_tick(Duration::from_millis(120));
     pb
 }
 
