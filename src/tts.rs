@@ -30,6 +30,16 @@ pub fn parse_speed(speed: &str) -> Result<i32> {
         .with_context(|| format!("无法解析语速参数: {speed}"))
 }
 
+/// 返回文本将被切分成的 chunk 数(0 表示空文本)。
+/// 调用方可据此选择合适的进度 UI——单 chunk 是原子网络请求,没有可观测中途进度。
+pub fn count_chunks(text: &str) -> usize {
+    let text = text.trim();
+    if text.is_empty() {
+        return 0;
+    }
+    split_text(text, MAX_CHUNK_SIZE).len()
+}
+
 fn make_config(voice: &str, speed_pct: i32) -> SpeechConfig {
     SpeechConfig {
         voice_name: voice.to_string(),

@@ -19,6 +19,18 @@ pub fn progress_percent(total: u64) -> ProgressBar {
     pb
 }
 
+/// 不确定进度的旋转指示器,用于不可观测中途进度的原子操作(如单次 Edge TTS 请求)。
+pub fn progress_spinner(msg: &str) -> ProgressBar {
+    let pb = ProgressBar::new_spinner();
+    pb.set_style(
+        ProgressStyle::with_template("{spinner:.cyan} {msg} {elapsed}")
+            .unwrap(),
+    );
+    pb.set_message(msg.to_string());
+    pb.enable_steady_tick(Duration::from_millis(120));
+    pb
+}
+
 pub fn progress_count(total: u64, unit: &str) -> ProgressBar {
     let pb = ProgressBar::new(total);
     pb.set_style(

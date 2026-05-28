@@ -2,7 +2,7 @@ use article_reader::config::alias_to_voice;
 use article_reader::parser::{BlockKind, parse_file};
 use article_reader::preprocess::{preprocess, preprocess_ssml};
 use article_reader::splitter::{sanitize_filename, split_by_sections};
-use article_reader::tts::{parse_speed, resolve_voice};
+use article_reader::tts::{count_chunks, parse_speed, resolve_voice};
 use std::path::PathBuf;
 
 fn samples_dir() -> PathBuf {
@@ -78,6 +78,23 @@ fn voice_alias_resolution() {
     assert_eq!(resolve_voice("xiaoxiao"), "zh-CN-XiaoxiaoNeural");
     assert_eq!(resolve_voice("yunxi"), "zh-CN-YunxiNeural");
     assert_eq!(resolve_voice("zh-CN-Custom"), "zh-CN-Custom");
+}
+
+#[test]
+fn count_chunks_handles_empty_and_short_and_long() {
+    assert_eq!(count_chunks(""), 0);
+    assert_eq!(count_chunks("   \n\t  "), 0);
+
+    let short = "这是一段简短的中文文本。";
+    assert_eq!(count_chunks(short), 1, "短文本应只产生 1 个 chunk");
+
+    let long_para = "中文段落。".repeat(2000);
+    let long_text = format!("{long_para}\n\n{long_para}");
+    assert!(
+        count_chunks(&long_text) > 1,
+        "超长文本应切分为多个 chunk(实际: {})",
+        count_chunks(&long_text)
+    );
 }
 
 #[test]

@@ -2,8 +2,10 @@ use crate::config::SUPPORTED_FORMATS;
 use crate::parser::{BlockKind, ParsedArticle, parse_file};
 use crate::preprocess::{preprocess, preprocess_ssml};
 use crate::splitter::{sanitize_filename, split_by_sections};
-use crate::tts::{list_voices, parse_speed, resolve_voice, text_to_speech_chunked};
-use crate::ui::{print_panel, print_summary, progress_count, progress_percent, voice_table};
+use crate::tts::{count_chunks, list_voices, parse_speed, resolve_voice, text_to_speech_chunked};
+use crate::ui::{
+    print_panel, print_summary, progress_count, progress_percent, progress_spinner, voice_table,
+};
 use anyhow::{Context, Result, anyhow};
 use clap::Parser;
 use owo_colors::OwoColorize;
@@ -140,22 +142,41 @@ fn run_single(article: &ParsedArticle, opts: &RunOpts<'_>) -> Result<()> {
         }
     };
 
-    let pb = progress_percent(100);
-    let pb_clone = pb.clone();
-    let result = text_to_speech_chunked(
-        &text,
-        &output_path,
-        voice_id,
-        speed_pct,
-        concurrency,
-        move |cur, tot| {
-            if tot > 0 {
-                let pct = (cur as f64 / tot as f64 * 100.0) as u64;
-                pb_clone.set_position(pct.min(100));
-            }
-        },
-    );
-    pb.finish_and_clear();
+    // 选择进度 UI:单 chunk 是原子 Edge TTS 请求,没有可观测的中途进度——
+    // 此时用 spinner 诚实地展示"正在工作",避免 0% bar 误导用户。
+    // 多 chunk 时仍用百分比 bar,每个 chunk 完成都会推进真实进度。
+    let chunks = count_chunks(&text);
+    let result = if chunks <= 1 {
+        let pb = progress_spinner("合成中...");
+        let r = text_to_speech_chunked(
+            &text,
+            &output_path,
+            voice_id,
+            speed_pct,
+            concurrency,
+            |_, _| {},
+        );
+        pb.finish_and_clear();
+        r
+    } else {
+        let pb = progress_percent(100);
+        let pb_clone = pb.clone();
+        let r = text_to_speech_chunked(
+            &text,
+            &output_path,
+            voice_id,
+            speed_pct,
+            concurrency,
+            move |cur, tot| {
+                if tot > 0 {
+                    let pct = (cur as f64 / tot as f64 * 100.0) as u64;
+                    pb_clone.set_position(pct.min(100));
+                }
+            },
+        );
+        pb.finish_and_clear();
+        r
+    };
 
     match result {
         Ok(()) => {

@@ -14,7 +14,7 @@ Preparing for the PET exam was an important turning point. It was not easy, beca
 
 So, to the younger students, I want to say: if you learn fast, that is great. But please also learn solidly. If you meet difficulties, do not run away. Find the problem, ask your teachers for help, and keep practicing. Your weak point today may become your strength tomorrow.
 
-Finally, I want to say thank you to Lily English, to all my teachers, and to my mom and dad. Thank you for helping me grow in these six years. I will keep learning, keep improving, and keep using English to see a bigger world.
+Finally, I want to say thank you to Lily English, to all my teachers, and to my mom and dad. Thank you for helping me grow in these seven years. I will keep learning, keep improving, and keep using English to see a bigger world.
 
 Thank you!
 
